@@ -1,0 +1,5 @@
+run_tests:
+  command: eval "$(docker-machine env local)" && docker-compose run rust cargo test -- --nocapture
+
+run_binary:
+  command: eval "$(docker-machine env local)" && docker-compose run rust cargo run

@@ -1,3 +1,8 @@
+extern crate fuzz;
+
+use fuzz::App;
+
 fn main() {
-    println!("Hello, world!");
+    let mut app = App::new();
+    app.start();
 }
