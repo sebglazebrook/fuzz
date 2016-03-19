@@ -47,7 +47,7 @@ impl App {
     //---------- private -------------//
 
     fn is_special_character(&self, character: i32) -> bool { 
-        keyname(character).len() != 1 
+        keyname(character).chars().count() != 1
     }
 
     fn handle_special_character(&mut self, character: i32) {
