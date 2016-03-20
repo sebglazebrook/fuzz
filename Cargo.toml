@@ -10,4 +10,4 @@ crossbeam = "*"
 
 [dependencies.directory_filter]
 git = "http://github.com/sebglazebrook/directory_filter.git"
-rev = "8f680ee"
+rev = "55513d4"
