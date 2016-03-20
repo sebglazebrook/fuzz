@@ -5,4 +5,9 @@ authors = ["Seb Glazebrook <sebastian.glazebrook@redbubble.com>"]
 
 [dependencies]
 
-ncurses ="*"
+ncurses = "*"
+crossbeam = "*"
+
+[dependencies.directory_filter]
+git = "http://github.com/sebglazebrook/directory_filter.git"
+rev = "8f680ee"
