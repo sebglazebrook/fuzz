@@ -4,17 +4,12 @@ use std::sync::Mutex;
 pub struct Curses {
     pub width: i32,
     pub height: i32,
-    //screen: Mutex<*mut i8>,
-    //window: i8,
 }
 
 impl Curses {
 
     pub fn new() -> Self {
-        let window = Curses::init();
-        //set_term(window);
-        //box_(window);
-        //use_window(window);
+        Curses::init();
         let mut width = 0;
         let mut height = 0;
         getmaxyx(stdscr, &mut height, &mut width);  
@@ -23,6 +18,14 @@ impl Curses {
 
     pub fn move_cursor(&self, row: i32, column: i32) {
         mv(row, column);
+    }
+
+    pub fn bold(&self) {
+        attron(A_BOLD());
+    }
+
+    pub fn normal(&self) {
+        attroff(A_BOLD());
     }
 
     pub fn print(&self, message: &str) {
@@ -59,12 +62,10 @@ impl Curses {
     }
     //--------- private -----------//
 
-    fn init() -> *mut i8 {
-        let window = initscr();
+    fn init() {
+        initscr();
         raw();
         noecho();
         keypad(stdscr, true);
-        attron(A_BOLD());
-        window
     }
 }

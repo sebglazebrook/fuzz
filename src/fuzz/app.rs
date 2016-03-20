@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use directory_filter::{ContinuousFilter, FilteredDirectory, ScannerBuilder, Directory};
 use crossbeam;
+use std::sync::mpsc::TryRecvError::*;
 
 use fuzz::Curses;
 
@@ -47,7 +48,6 @@ impl<'a> App<'a> {
         let mut directory = Directory::new(PathBuf::new());
         let(trans_new_directory_item, rec_new_directory_item) = channel();
         let(trans_filter_match, rec_filter_match) = channel();
-        //let(tx, rx) = channel();
         crossbeam::scope(|scope| {
 
             let mut scanner_builder = ScannerBuilder::new();
@@ -59,7 +59,6 @@ impl<'a> App<'a> {
 
             let mut filter = ContinuousFilter::new(&directory,
                                                    rec_filter_change,
-                                                   //Arc::new(Mutex::new(rx)),
                                                    Arc::new(Mutex::new(rec_new_directory_item)),
                                                    Arc::new(Mutex::new(trans_filter_match.clone()))
                                                   );
@@ -111,10 +110,15 @@ impl<'a> App<'a> {
             if index == self.max_result_rows() {
                 break;
             }
-            self.curses.move_cursor(index as i32, 0);
-            self.curses.println(result);
+            self.update_result(result, index);
         }
         self.set_cursor_to_filter_input();
+    }
+
+    fn update_result(&self, result: &String, row_number: usize) {
+            self.curses.move_cursor(row_number as i32, 0);
+            self.curses.normal();
+            self.curses.println(result);
     }
 
     fn clear_results(&self) {
@@ -153,6 +157,7 @@ impl<'a> App<'a> {
     fn update_ui(&self) {
         self.set_cursor_to_filter_input_beginning();
         let filter_string = self.filter_string.clone();
+        self.curses.bold();
         self.curses.println(&filter_string);
     }
 
