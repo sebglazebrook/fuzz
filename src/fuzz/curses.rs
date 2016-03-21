@@ -1,6 +1,16 @@
 use ncurses::*;
 use std::sync::Mutex;
 
+
+/* Individual color handles. */
+static COLOR_BACKGROUND: i16 = 16;
+static COLOR_FOREGROUND: i16 = 17;
+static COLOR_KEYWORD: i16 = 18;
+
+/* Color pairs; foreground && background. */
+static COLOR_PAIR_DEFAULT: i16 = 1;
+static COLOR_PAIR_SELECTED: i16 = 2;
+
 pub struct Curses {
     pub width: i32,
     pub height: i32,
@@ -26,6 +36,14 @@ impl Curses {
 
     pub fn normal(&self) {
         attroff(A_BOLD());
+    }
+
+    pub fn normal_background(&self) {
+        attron(COLOR_PAIR(COLOR_PAIR_DEFAULT));
+    }
+
+    pub fn selected_background(&self) {
+        attron(COLOR_PAIR(COLOR_PAIR_SELECTED));
     }
 
     pub fn print(&self, message: &str) {
@@ -67,5 +85,9 @@ impl Curses {
         raw();
         noecho();
         keypad(stdscr, true);
+
+        start_color();
+        init_pair(COLOR_PAIR_DEFAULT, COLOR_WHITE, COLOR_BLACK);
+        init_pair(COLOR_PAIR_SELECTED, COLOR_WHITE, COLOR_GREEN);
     }
 }

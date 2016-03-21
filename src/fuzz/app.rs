@@ -21,6 +21,8 @@ pub struct App<'a> {
     rec_new_directory_item: Arc<Mutex<Receiver<Directory>>>,
     trans_filter_match: Arc<Mutex<Sender<FilteredDirectory<'a>>>>,
     curses: Curses,
+    selected_result: i8,
+    displayed_results: Vec<String>
 }
 
 impl<'a> App<'a> {
@@ -38,6 +40,8 @@ impl<'a> App<'a> {
             rec_new_directory_item: Arc::new(Mutex::new(rec_new_directory_item)),
             trans_filter_match: Arc::new(Mutex::new(trans_filter_match)),
             curses: Curses::new(),
+            selected_result: -1,
+            displayed_results: vec![],
         }
     }
 
@@ -104,7 +108,7 @@ impl<'a> App<'a> {
         }
     }
 
-    fn update_results(&self, results: FilteredDirectory) {
+    fn update_results(&mut self, results: FilteredDirectory) {
         self.clear_results();
         for (index, result) in results.matches.iter().enumerate() {
             if index == self.max_result_rows() {
@@ -115,13 +119,15 @@ impl<'a> App<'a> {
         self.set_cursor_to_filter_input();
     }
 
-    fn update_result(&self, result: &String, row_number: usize) {
-            self.curses.move_cursor(row_number as i32, 0);
-            self.curses.normal();
-            self.curses.println(result);
+    fn update_result(&mut self, result: &String, row_number: usize) {
+        self.displayed_results.push(result.clone());
+        self.curses.move_cursor(row_number as i32, 0);
+        self.curses.normal();
+        self.curses.println(result);
     }
 
-    fn clear_results(&self) {
+    fn clear_results(&mut self) {
+        self.displayed_results.clear();
         for row in (0..self.max_result_rows()) {
             self.curses.clear_row(row as i32);
         }
@@ -133,15 +139,33 @@ impl<'a> App<'a> {
 
     fn handle_special_character(&mut self, character: i32, key: &String) {
         match key.as_ref() {
-            "^C" => { self.done.store(true, Ordering::Relaxed ) }
+            "^C" => { self.done.store(true, Ordering::Relaxed) },
+            "^Y" => {
+                // TODO copy selected to copy buffer
+                self.done.store(true, Ordering::Relaxed)
+            },
+            "^J" => { self.move_selected_down(); },
+            "^K" => { self.move_selected_up(); }
             _ => {
                 match character {
-                    //KEY_BACKSPACE => {
-                    263 => {
+                    263 => { //KEY_BACKSPACE
                         self.filter_string.pop(); 
                         self.trans_filter_change.lock().unwrap().send(self.filter_string.clone());
                         self.update_ui();
-                    }
+                    },
+                    27 => { // ESCAPE
+                        self.done.store(true, Ordering::Relaxed);
+                    },
+                    10 => { // ENTER
+                        // TODO copy selected to copy buffer
+                        self.done.store(true, Ordering::Relaxed);
+                    },
+                    258 => { // KEY_DOWN
+                        self.move_selected_down();
+                    },
+                    259 => { // KEY_UP
+                        self.move_selected_up();
+                    },
                     _ => { }
                 }
             }
@@ -172,5 +196,45 @@ impl<'a> App<'a> {
 
     fn max_result_rows(&self) -> usize  {
         (self.curses.height - 1) as usize
+    }
+
+    fn move_selected_down(&mut self) {
+        if self.selected_result < self.max_result_rows() as i8 {
+            self.unselect_current();
+            self.selected_result += 1;
+            self.select_row(self.selected_result);
+        }
+    }
+
+    fn move_selected_up(&mut self) {
+        if self.selected_result > -1 {
+            self.unselect_current();
+            self.selected_result -= 1;
+            self.select_row(self.selected_result);
+        }
+    }
+
+    fn unselect_current(&self) {
+        if self.selected_result >= 0 {
+            match self.displayed_results.get(self.selected_result as usize) {
+                Some(result) => {
+                    self.curses.move_cursor(self.selected_result as i32, 0);
+                    self.curses.normal_background();
+                    self.curses.println(&result);
+                },
+                None => {}
+            }
+        }
+    }
+
+    fn select_row(&self, row: i8) {
+        match self.displayed_results.get(self.selected_result as usize) {
+            Some(result) => {
+                self.curses.move_cursor(self.selected_result as i32, 0);
+                self.curses.selected_background();
+                self.curses.println(&result);
+            },
+            None => {}
+        }
     }
 }
