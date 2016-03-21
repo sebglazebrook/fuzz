@@ -157,7 +157,7 @@ impl<'a> App<'a> {
                         self.done.store(true, Ordering::Relaxed);
                     },
                     10 => { // ENTER
-                        // TODO copy selected to copy buffer
+                        self.copy_selected_to_clipboard();
                         self.done.store(true, Ordering::Relaxed);
                     },
                     258 => { // KEY_DOWN
@@ -233,6 +233,17 @@ impl<'a> App<'a> {
                 self.curses.move_cursor(self.selected_result as i32, 0);
                 self.curses.selected_background();
                 self.curses.println(&result);
+            },
+            None => {}
+        }
+    }
+
+
+    fn copy_selected_to_clipboard(&self) {
+        match self.displayed_results.get(self.selected_result as usize) {
+            Some(result) => {
+                let mut ctx = ClipboardContext::new().unwrap();
+                let _ = ctx.set_contents(result.clone());
             },
             None => {}
         }

@@ -7,7 +7,12 @@ authors = ["Seb Glazebrook <sebastian.glazebrook@redbubble.com>"]
 
 ncurses = "*"
 crossbeam = "*"
+clipboard = "*"
+
 
 [dependencies.directory_filter]
 git = "http://github.com/sebglazebrook/directory_filter.git"
-rev = "55513d4"
+rev = "651f009"
+
+# [dependencies.clipboard]
+# git = "https://github.com/aweinstock314/rust-clipboard.git"
