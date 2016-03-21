@@ -141,7 +141,7 @@ impl<'a> App<'a> {
         match key.as_ref() {
             "^C" => { self.done.store(true, Ordering::Relaxed) },
             "^Y" => {
-                // TODO copy selected to copy buffer
+                self.copy_selected_to_clipboard();
                 self.done.store(true, Ordering::Relaxed)
             },
             "^J" => { self.move_selected_down(); },

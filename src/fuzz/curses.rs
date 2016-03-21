@@ -5,7 +5,7 @@ use std::sync::Mutex;
 /* Individual color handles. */
 static COLOR_BACKGROUND: i16 = 16;
 static COLOR_FOREGROUND: i16 = 17;
-static COLOR_KEYWORD: i16 = 18;
+static COLOR_SELECTED_BACKGROUND: i16 = 237;
 
 /* Color pairs; foreground && background. */
 static COLOR_PAIR_DEFAULT: i16 = 1;
@@ -36,6 +36,7 @@ impl Curses {
 
     pub fn normal(&self) {
         attroff(A_BOLD());
+        self.normal_background();
     }
 
     pub fn normal_background(&self) {
@@ -88,6 +89,6 @@ impl Curses {
 
         start_color();
         init_pair(COLOR_PAIR_DEFAULT, COLOR_WHITE, COLOR_BLACK);
-        init_pair(COLOR_PAIR_SELECTED, COLOR_WHITE, COLOR_GREEN);
+        init_pair(COLOR_PAIR_SELECTED, COLOR_WHITE, COLOR_SELECTED_BACKGROUND);
     }
 }

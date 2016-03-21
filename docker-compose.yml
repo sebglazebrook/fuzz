@@ -9,6 +9,7 @@ rust:
   #image: sebglazebrook/rust-nightly
   environment:
     - RUST_BACKTRACE=1
+    - TERM=xterm-256color
   volumes:
     - .:/code
   volumes_from:
