@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use directory_filter::{ContinuousFilter, FilteredDirectory, ScannerBuilder, Directory};
 use crossbeam;
 use std::sync::mpsc::TryRecvError::*;
+use clipboard::ClipboardContext;
 
 use fuzz::Curses;
 
