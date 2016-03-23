@@ -61,12 +61,13 @@ impl Curses {
         clrtoeol();
     }
 
-    pub fn get_char_key(&self) -> (i32, String) {
+    pub fn get_char_and_key(&self) -> (i32, String) {
+        nodelay(stdscr, false);
         let char = getch();
         (char, keyname(char))
     }
 
-    pub fn get_char_and_key(&self) -> Option<(i32, String)> {
+    pub fn try_get_char_and_key(&self) -> Option<(i32, String)> {
         nodelay(stdscr, true);
         let char = getch();
         if char == -1 {

@@ -12,7 +12,7 @@ clipboard = "*"
 
 [dependencies.directory_filter]
 git = "http://github.com/sebglazebrook/directory_filter.git"
-rev = "651f009"
+rev = "14ad2d9"
 
 # [dependencies.clipboard]
 # git = "https://github.com/aweinstock314/rust-clipboard.git"

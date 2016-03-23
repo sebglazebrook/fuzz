@@ -47,11 +47,11 @@ impl<'a> App<'a> {
     }
 
     pub fn start(&mut self) {
-        let rec_filter_change = self.rec_filter_change.clone();
-        let rec_new_directory_item = self.rec_new_directory_item.clone();
-        let trans_new_directory_item = self.trans_new_directory_item.clone();
+        //let rec_filter_change = self.rec_filter_change.clone();
+        let(trans_filter_change , rec_filter_change) = channel();
         let mut directory = Directory::new(PathBuf::new());
         let(trans_new_directory_item, rec_new_directory_item) = channel();
+        let  rec_new_directory_item =  Arc::new(Mutex::new(rec_new_directory_item));
         let(trans_filter_match, rec_filter_match) = channel();
         crossbeam::scope(|scope| {
 
@@ -60,52 +60,73 @@ impl<'a> App<'a> {
             scanner_builder = scanner_builder.max_threads(1);
             scanner_builder = scanner_builder.update_subscriber(Arc::new(Mutex::new(trans_new_directory_item)));
             let mut scanner = scanner_builder.build();
+            drop(scanner_builder);
             directory = scanner.scan();
 
             let mut filter = ContinuousFilter::new(&directory,
-                                                   rec_filter_change,
-                                                   Arc::new(Mutex::new(rec_new_directory_item)),
+                                                   Arc::new(Mutex::new(rec_filter_change)),
+                                                   rec_new_directory_item.clone(),
                                                    Arc::new(Mutex::new(trans_filter_match.clone()))
                                                   );
 
+            let finished_transmitter = filter.finished_transmitter.clone();
             scope.spawn(move|| {
-                    filter.start();
+                filter.start();
             });
 
             self.set_cursor_to_filter_input();
 
+            let mut scanning_complete = false;
+            //let mut pending_filter_events = true; // make this variable
             while !self.done.load(Ordering::Relaxed) {
-                match self.curses.get_char_and_key() {
-                    Some((character, key)) => {
-                        self.handle_user_input(character, key);
-                    },
-                    None => {
-                        match rec_filter_match.try_recv() {
-                            Ok(filtered_directory) =>  {
-                                self.update_results(filtered_directory);
-                            },
-                            Err(error) => {
-                                match error {
-                                    Empty => {}
-                                    Disconnected => {}
-                                }
+                if scanning_complete {
+                    match rec_filter_match.try_recv() { // this needs to get the latest
+                        Ok(filtered_directory) =>  { self.update_results(filtered_directory); },
+                        Err(error) => {
+                            match error {
+                                Empty => {}
+                                Disconnected => {}
                             }
                         }
                     }
+                    let (character, key) = self.curses.get_char_and_key();
+                    self.handle_user_input(character, key, &trans_filter_change);
+                } else {
+                    //if scanner.complete() {
+                        //scanning_complete = true;
+                    //} else {
+                        match self.curses.try_get_char_and_key() {
+                            Some((character, key)) => { self.handle_user_input(character, key, &trans_filter_change ); },
+                            None => {
+                                match rec_filter_match.try_recv() {
+                                    Ok(filtered_directory) =>  { self.update_results(filtered_directory); },
+                                    Err(error) => {
+                                        match error {
+                                            Empty => {}
+                                            Disconnected => {}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    //}
                 }
             }
 
             self.curses.close();
+            let _ = finished_transmitter.send(true);
+            drop(trans_filter_change);
         });
+
     }
 
     //---------- private ----------//
 
-    fn handle_user_input(&mut self, character: i32, key: String) {
+    fn handle_user_input(&mut self, character: i32, key: String, transmitter: &Sender<String>) {
         if self.is_special_key(&key) {
-            self.handle_special_character(character, &key);
+            self.handle_special_character(character, &key, transmitter);
         } else {
-            self.amend_filter_string(&key);
+            self.amend_filter_string(&key, transmitter);
         }
     }
 
@@ -138,7 +159,7 @@ impl<'a> App<'a> {
         key.chars().count() != 1
     }
 
-    fn handle_special_character(&mut self, character: i32, key: &String) {
+    fn handle_special_character(&mut self, character: i32, key: &String, transmitter: &Sender<String>) {
         match key.as_ref() {
             "^C" => { self.done.store(true, Ordering::Relaxed) },
             "^Y" => {
@@ -149,9 +170,9 @@ impl<'a> App<'a> {
             "^K" => { self.move_selected_up(); }
             _ => {
                 match character {
-                    263 => { //KEY_BACKSPACE
+                    263 | 127 => { //KEY_BACKSPACE
                         self.filter_string.pop(); 
-                        self.trans_filter_change.lock().unwrap().send(self.filter_string.clone());
+                        transmitter.send(self.filter_string.clone());
                         self.update_ui();
                     },
                     27 => { // ESCAPE
@@ -173,9 +194,9 @@ impl<'a> App<'a> {
         }
     }
 
-    fn amend_filter_string(&mut self, key: &String) {
+    fn amend_filter_string(&mut self, key: &String, transmitter: &Sender<String>) {
         self.filter_string = self.filter_string.clone() + key;
-        self.trans_filter_change.lock().unwrap().send(self.filter_string.clone());
+        transmitter.send(self.filter_string.clone());
         self.update_ui();
     }
 
