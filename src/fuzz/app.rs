@@ -1,9 +1,8 @@
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
-use std::sync::mpsc::{Sender, Receiver};
-use std::thread;
-use std::io;
+use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
+
 use std::sync::atomic::{AtomicBool, Ordering};
 use directory_filter::{ContinuousFilter, FilteredDirectory, ScannerBuilder, Directory};
 use crossbeam;
@@ -16,11 +15,6 @@ use fuzz::Curses;
 pub struct App {
     done: AtomicBool,
     filter_string: String,
-    trans_filter_change: Arc<Mutex<Sender<String>>>,
-    rec_filter_change: Arc<Mutex<Receiver<String>>>,
-    trans_new_directory_item: Arc<Mutex<Sender<Directory>>>,
-    rec_new_directory_item: Arc<Mutex<Receiver<Directory>>>,
-    trans_filter_match: Arc<Mutex<Sender<FilteredDirectory>>>,
     curses: Curses,
     selected_result: i8,
     displayed_results: Vec<String>
@@ -29,17 +23,9 @@ pub struct App {
 impl App {
 
     pub fn new() -> Self {
-        let(trans_filter_change, rec_filter_change) = channel();
-        let(trans_new_directory_item, rec_new_directory_item) = channel();
-        let(trans_filter_match, rec_filter_match) = channel();
         App {
             done: AtomicBool::new(false),
             filter_string: String::new(),
-            trans_filter_change: Arc::new(Mutex::new(trans_filter_change)),
-            rec_filter_change: Arc::new(Mutex::new(rec_filter_change)),
-            trans_new_directory_item: Arc::new(Mutex::new(trans_new_directory_item)),
-            rec_new_directory_item: Arc::new(Mutex::new(rec_new_directory_item)),
-            trans_filter_match: Arc::new(Mutex::new(trans_filter_match)),
             curses: Curses::new(),
             selected_result: -1,
             displayed_results: vec![],
@@ -155,7 +141,7 @@ impl App {
 
     fn clear_results(&mut self) {
         self.displayed_results.clear();
-        for row in (0..self.max_result_rows()) {
+        for row in 0..self.max_result_rows() {
             self.curses.clear_row(row as i32);
         }
     }
@@ -177,7 +163,7 @@ impl App {
                 match character {
                     263 | 127 => { //KEY_BACKSPACE
                         self.filter_string.pop(); 
-                        transmitter.send(self.filter_string.clone());
+                        let _ = transmitter.send(self.filter_string.clone());
                         self.update_ui();
                     },
                     27 => { // ESCAPE
@@ -201,7 +187,7 @@ impl App {
 
     fn amend_filter_string(&mut self, key: &String, transmitter: &Sender<String>) {
         self.filter_string = self.filter_string.clone() + key;
-        transmitter.send(self.filter_string.clone());
+        let _ = transmitter.send(self.filter_string.clone());
         self.update_ui();
     }
 
@@ -229,7 +215,7 @@ impl App {
         if self.selected_result < self.max_result_rows() as i8 {
             self.unselect_current();
             self.selected_result += 1;
-            self.select_row(self.selected_result);
+            self.select_row();
         }
     }
 
@@ -237,7 +223,7 @@ impl App {
         if self.selected_result > -1 {
             self.unselect_current();
             self.selected_result -= 1;
-            self.select_row(self.selected_result);
+            self.select_row();
         }
     }
 
@@ -254,7 +240,7 @@ impl App {
         }
     }
 
-    fn select_row(&self, row: i8) {
+    fn select_row(&self) {
         match self.displayed_results.get(self.selected_result as usize) {
             Some(result) => {
                 self.curses.move_cursor(self.selected_result as i32, 0);

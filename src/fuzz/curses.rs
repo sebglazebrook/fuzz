@@ -1,10 +1,7 @@
 use ncurses::*;
-use std::sync::Mutex;
 
 
 /* Individual color handles. */
-static COLOR_BACKGROUND: i16 = 16;
-static COLOR_FOREGROUND: i16 = 17;
 static COLOR_SELECTED_BACKGROUND: i16 = 237;
 
 /* Color pairs; foreground && background. */
