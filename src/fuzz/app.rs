@@ -13,20 +13,20 @@ use clipboard::ClipboardContext;
 use fuzz::Curses;
 
 
-pub struct App<'a> {
+pub struct App {
     done: AtomicBool,
     filter_string: String,
     trans_filter_change: Arc<Mutex<Sender<String>>>,
     rec_filter_change: Arc<Mutex<Receiver<String>>>,
     trans_new_directory_item: Arc<Mutex<Sender<Directory>>>,
     rec_new_directory_item: Arc<Mutex<Receiver<Directory>>>,
-    trans_filter_match: Arc<Mutex<Sender<FilteredDirectory<'a>>>>,
+    trans_filter_match: Arc<Mutex<Sender<FilteredDirectory>>>,
     curses: Curses,
     selected_result: i8,
     displayed_results: Vec<String>
 }
 
-impl<'a> App<'a> {
+impl App {
 
     pub fn new() -> Self {
         let(trans_filter_change, rec_filter_change) = channel();
@@ -57,13 +57,15 @@ impl<'a> App<'a> {
 
             let mut scanner_builder = ScannerBuilder::new();
             scanner_builder = scanner_builder.start_from_path("./");
-            scanner_builder = scanner_builder.max_threads(1);
+            //scanner_builder = scanner_builder.max_threads(1);
             scanner_builder = scanner_builder.update_subscriber(Arc::new(Mutex::new(trans_new_directory_item)));
             let mut scanner = scanner_builder.build();
             drop(scanner_builder);
             directory = scanner.scan();
 
-            let mut filter = ContinuousFilter::new(&directory,
+            let directory = Arc::new(Mutex::new(directory));
+
+            let mut filter = ContinuousFilter::new(directory,
                                                    Arc::new(Mutex::new(rec_filter_change)),
                                                    rec_new_directory_item.clone(),
                                                    Arc::new(Mutex::new(trans_filter_match.clone()))
@@ -81,7 +83,9 @@ impl<'a> App<'a> {
             while !self.done.load(Ordering::Relaxed) {
                 if scanning_complete {
                     match rec_filter_match.try_recv() { // this needs to get the latest
-                        Ok(filtered_directory) =>  { self.update_results(filtered_directory); },
+                        Ok(filtered_directory) =>  {
+                            self.update_results(filtered_directory);
+                        },
                         Err(error) => {
                             match error {
                                 Empty => {}
@@ -99,7 +103,8 @@ impl<'a> App<'a> {
                             Some((character, key)) => { self.handle_user_input(character, key, &trans_filter_change ); },
                             None => {
                                 match rec_filter_match.try_recv() {
-                                    Ok(filtered_directory) =>  { self.update_results(filtered_directory); },
+                                    Ok(filtered_directory) =>  {
+                                        self.update_results(filtered_directory); },
                                     Err(error) => {
                                         match error {
                                             Empty => {}
