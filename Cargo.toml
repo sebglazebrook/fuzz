@@ -8,6 +8,8 @@ authors = ["Seb Glazebrook <sebastian.glazebrook@redbubble.com>"]
 ncurses = "*"
 crossbeam = "*"
 clipboard = "*"
+log = "*"
+env_logger = "*"
 
 
 [dependencies.directory_filter]

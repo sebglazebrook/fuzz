@@ -33,6 +33,7 @@ impl App {
     }
 
     pub fn start(&mut self) {
+        info!("App started");
         //let rec_filter_change = self.rec_filter_change.clone();
         let(trans_filter_change , rec_filter_change) = channel();
         let mut directory = Directory::new(PathBuf::new());
@@ -47,6 +48,7 @@ impl App {
             scanner_builder = scanner_builder.update_subscriber(Arc::new(Mutex::new(trans_new_directory_item)));
             let mut scanner = scanner_builder.build();
             drop(scanner_builder);
+            info!("Starting to scan for files");
             directory = scanner.scan();
 
             let directory = Arc::new(Mutex::new(directory));
@@ -59,6 +61,7 @@ impl App {
 
             let finished_transmitter = filter.finished_transmitter.clone();
             scope.spawn(move|| {
+                info!("Starting to filter scanned files");
                 filter.start();
             });
 
@@ -86,10 +89,14 @@ impl App {
                         //scanning_complete = true;
                     //} else {
                         match self.curses.try_get_char_and_key() {
-                            Some((character, key)) => { self.handle_user_input(character, key, &trans_filter_change ); },
+                            Some((character, key)) => {
+                                info!("Found character {}, key {}", character, key);
+                                self.handle_user_input(character, key, &trans_filter_change );
+                            },
                             None => {
                                 match rec_filter_match.try_recv() {
                                     Ok(filtered_directory) =>  {
+                                        info!("Found filter match: {}", filtered_directory.matches.len());
                                         self.update_results(filtered_directory); },
                                     Err(error) => {
                                         match error {
