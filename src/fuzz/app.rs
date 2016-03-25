@@ -44,7 +44,7 @@ impl App {
 
             let mut scanner_builder = ScannerBuilder::new();
             scanner_builder = scanner_builder.start_from_path("./");
-            //scanner_builder = scanner_builder.max_threads(1);
+            scanner_builder = scanner_builder.max_threads(1);
             scanner_builder = scanner_builder.update_subscriber(Arc::new(Mutex::new(trans_new_directory_item)));
             let mut scanner = scanner_builder.build();
             drop(scanner_builder);
