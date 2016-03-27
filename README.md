@@ -6,3 +6,5 @@
 - improve filtering so when the regex is additive it doesn't refilter all the things just the previous matches
 - try again to get the curses stuff into a thread??
 - get multithreaded scanning to work properly again
+- know how many pending filter events are in play and when 0 allow blocking of main thread when
+  waiting for keyboard input
