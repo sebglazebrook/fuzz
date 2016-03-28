@@ -1,16 +1,14 @@
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
-use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
-
 use std::sync::atomic::{AtomicBool, Ordering};
-use directory_filter::{ContinuousFilter, FilteredDirectory, ScannerBuilder, Directory};
-use crossbeam;
 use std::sync::mpsc::TryRecvError::*;
+
+use directory_filter::{ContinuousFilter, FilteredDirectory, ScannerBuilder, Directory, FILTER_EVENT_BROKER};
+use crossbeam;
 use clipboard::ClipboardContext;
 
 use fuzz::Curses;
-
 
 pub struct App {
     done: AtomicBool,
@@ -34,8 +32,6 @@ impl App {
 
     pub fn start(&mut self) {
         info!("App started");
-        //let rec_filter_change = self.rec_filter_change.clone();
-        let(trans_filter_change , rec_filter_change) = channel();
         let mut directory = Directory::new(PathBuf::new());
         let(trans_new_directory_item, rec_new_directory_item) = channel();
         let  rec_new_directory_item =  Arc::new(Mutex::new(rec_new_directory_item));
@@ -54,7 +50,6 @@ impl App {
             let directory = Arc::new(Mutex::new(directory));
 
             let mut filter = ContinuousFilter::new(directory,
-                                                   Arc::new(Mutex::new(rec_filter_change)),
                                                    rec_new_directory_item.clone(),
                                                    Arc::new(Mutex::new(trans_filter_match.clone()))
                                                   );
@@ -83,7 +78,7 @@ impl App {
                         }
                     }
                     let (character, key) = self.curses.get_char_and_key();
-                    self.handle_user_input(character, key, &trans_filter_change);
+                    self.handle_user_input(character, key);
                 } else {
                     //if scanner.complete() {
                         //scanning_complete = true;
@@ -91,7 +86,7 @@ impl App {
                         match self.curses.try_get_char_and_key() {
                             Some((character, key)) => {
                                 info!("Found character {}, key {}", character, key);
-                                self.handle_user_input(character, key, &trans_filter_change );
+                                self.handle_user_input(character, key);
                             },
                             None => {
                                 match rec_filter_match.try_recv() {
@@ -113,18 +108,18 @@ impl App {
 
             self.curses.close();
             let _ = finished_transmitter.send(true);
-            drop(trans_filter_change);
+            FILTER_EVENT_BROKER.close();
         });
 
     }
 
     //---------- private ----------//
 
-    fn handle_user_input(&mut self, character: i32, key: String, transmitter: &Sender<String>) {
+    fn handle_user_input(&mut self, character: i32, key: String) {
         if self.is_special_key(&key) {
-            self.handle_special_character(character, &key, transmitter);
+            self.handle_special_character(character, &key);
         } else {
-            self.amend_filter_string(&key, transmitter);
+            self.amend_filter_string(&key);
         }
     }
 
@@ -157,7 +152,7 @@ impl App {
         key.chars().count() != 1
     }
 
-    fn handle_special_character(&mut self, character: i32, key: &String, transmitter: &Sender<String>) {
+    fn handle_special_character(&mut self, character: i32, key: &String) {
         match key.as_ref() {
             "^C" => { self.done.store(true, Ordering::Relaxed) },
             "^Y" => {
@@ -170,7 +165,7 @@ impl App {
                 match character {
                     263 | 127 => { //KEY_BACKSPACE
                         self.filter_string.pop(); 
-                        let _ = transmitter.send(self.filter_string.clone());
+                        FILTER_EVENT_BROKER.send(self.filter_string.clone());
                         self.update_ui();
                     },
                     27 => { // ESCAPE
@@ -192,9 +187,9 @@ impl App {
         }
     }
 
-    fn amend_filter_string(&mut self, key: &String, transmitter: &Sender<String>) {
+    fn amend_filter_string(&mut self, key: &String) {
         self.filter_string = self.filter_string.clone() + key;
-        let _ = transmitter.send(self.filter_string.clone());
+        FILTER_EVENT_BROKER.send(self.filter_string.clone());
         self.update_ui();
     }
 
