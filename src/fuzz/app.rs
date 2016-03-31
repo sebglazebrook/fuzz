@@ -90,7 +90,7 @@ impl App {
                             None => {
                                 match rec_filter_match.try_recv() {
                                     Ok(filtered_directory) =>  {
-                                        info!("Found filter match: {}", filtered_directory.matches.len());
+                                        info!("Found filter match: {}", filtered_directory.len());
                                         self.update_results(filtered_directory); },
                                     Err(error) => {
                                         match error {
