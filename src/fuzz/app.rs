@@ -124,11 +124,11 @@ impl App {
 
     fn update_results(&mut self, results: FilteredDirectory) {
         self.clear_results();
-        for (index, result) in results.file_matches.iter().enumerate() {
+        for (index, result) in results.into_iter().enumerate() {
             if index == self.max_result_rows() {
                 break;
             }
-            self.update_result(result, index);
+            self.update_result(&result, index);
         }
         self.set_cursor_to_filter_input();
     }
