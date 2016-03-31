@@ -3,10 +3,9 @@ use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::TryRecvError::*;
-
-use directory_filter::{ContinuousFilter, FilteredDirectory, ScannerBuilder, Directory, FILTER_EVENT_BROKER};
 use crossbeam;
 use clipboard::ClipboardContext;
+use directory_filter::{ContinuousFilter, FilteredDirectory, ScannerBuilder, Directory, File, FILTER_EVENT_BROKER};
 
 use fuzz::Curses;
 
@@ -34,7 +33,7 @@ impl App {
         info!("App started");
         let mut directory = Directory::new(PathBuf::new());
         let(trans_new_directory_item, rec_new_directory_item) = channel();
-        let  rec_new_directory_item =  Arc::new(Mutex::new(rec_new_directory_item));
+        let rec_new_directory_item =  Arc::new(Mutex::new(rec_new_directory_item));
         let(trans_filter_match, rec_filter_match) = channel();
         crossbeam::scope(|scope| {
 
@@ -125,7 +124,7 @@ impl App {
 
     fn update_results(&mut self, results: FilteredDirectory) {
         self.clear_results();
-        for (index, result) in results.matches.iter().enumerate() {
+        for (index, result) in results.file_matches.iter().enumerate() {
             if index == self.max_result_rows() {
                 break;
             }
@@ -134,11 +133,11 @@ impl App {
         self.set_cursor_to_filter_input();
     }
 
-    fn update_result(&mut self, result: &String, row_number: usize) {
-        self.displayed_results.push(result.clone());
+    fn update_result(&mut self, result: &File, row_number: usize) {
+        self.displayed_results.push(result.as_string());
         self.curses.move_cursor(row_number as i32, 0);
         self.curses.normal();
-        self.curses.println(result);
+        self.curses.println(&result.as_string());
     }
 
     fn clear_results(&mut self) {
