@@ -124,12 +124,13 @@ impl App {
 
     fn update_results(&mut self, results: FilteredDirectory) {
         self.clear_results();
-        for (index, result) in results.into_iter().enumerate() {
+        for (index, result) in results.clone().into_iter().enumerate() {
             if index == self.max_result_rows() {
                 break;
             }
             self.update_result(&result, index);
         }
+        self.update_stats(results.total_len(), results.len());
         self.set_cursor_to_filter_input();
     }
 
@@ -199,6 +200,15 @@ impl App {
         self.curses.println(&filter_string);
     }
 
+    fn update_stats(&self, total: usize, matching: usize) {
+        let row = self.curses.height - 2;
+        self.curses.move_cursor(row, 0);
+        self.curses.clear_row(row as i32);
+        let mut stats = String::new();
+        stats = stats + &matching.to_string() + "/" + &total.to_string();
+        self.curses.println(&stats);
+    }
+
     fn set_cursor_to_filter_input(&self) {
         let column = self.filter_string.chars().count();
         self.curses.move_cursor(self.curses.height -1, column as i32);
@@ -209,7 +219,7 @@ impl App {
     }
 
     fn max_result_rows(&self) -> usize  {
-        (self.curses.height - 1) as usize
+        (self.curses.height - 2) as usize
     }
 
     fn move_selected_down(&mut self) {
