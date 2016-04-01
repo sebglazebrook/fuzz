@@ -8,3 +8,5 @@
 - know how many pending filter events are in play and when 0 allow blocking of main thread when
   waiting for keyboard input
 - can the continuous filter return a reference to the FilteredDirectory??
+- send filter matches as events and sort/aggregate them outside of the filter
+- don't include matches listed in .gitignore
