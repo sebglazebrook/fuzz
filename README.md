@@ -1,7 +1,5 @@
 # TODO
 
-- try wrapping Directory in a RwLock or just the varianble contents?
-- make Directory use crossbeam to avoid all the mutexes
 - try using a crossbeam::sync::MsQueue instead of channels to send data when new item found in directory
 - try again to get the curses stuff into a thread??
 - get multithreaded scanning to work properly again
