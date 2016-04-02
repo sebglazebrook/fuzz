@@ -46,8 +46,6 @@ impl App {
             info!("Starting to scan for files");
             directory = scanner.scan();
 
-            let directory = Arc::new(Mutex::new(directory));
-
             let mut filter = ContinuousFilter::new(directory,
                                                    rec_new_directory_item.clone(),
                                                    Arc::new(Mutex::new(trans_filter_match.clone()))
