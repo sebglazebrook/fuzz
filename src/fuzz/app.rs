@@ -162,9 +162,14 @@ impl App {
             _ => {
                 match character {
                     263 | 127 => { //KEY_BACKSPACE
-                        self.filter_string.pop(); 
-                        FILTER_EVENT_BROKER.send(self.filter_string.clone());
-                        self.update_ui();
+                        match self.filter_string.pop() {
+                            Some(_) => {
+                                FILTER_EVENT_BROKER.send(self.filter_string.clone());
+                                self.update_ui();
+                            },
+                            None => {}
+
+                        }
                     },
                     27 => { // ESCAPE
                         self.done.store(true, Ordering::Relaxed);
