@@ -45,10 +45,12 @@ impl App {
             drop(scanner_builder);
             info!("Starting to scan for files");
             directory = scanner.scan();
+            let new_directory_item_event_broker = scanner.event_broker();
 
             let filter = Arc::new(ContinuousFilter::new(directory,
                                                    rec_new_directory_item.clone(),
-                                                   Arc::new(Mutex::new(trans_filter_match.clone()))
+                                                   Arc::new(Mutex::new(trans_filter_match.clone())),
+                                                   new_directory_item_event_broker.clone()
                                                   ));
 
             let finished_lock = filter.finished_lock.clone();
@@ -103,7 +105,9 @@ impl App {
             let mut finished = finished_lock.lock().unwrap();
             *finished = true;
             finished_condvar.notify_all();
+
             FILTER_EVENT_BROKER.close();
+            new_directory_item_event_broker.close();
         });
 
     }
