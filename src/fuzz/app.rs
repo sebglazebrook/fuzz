@@ -46,65 +46,63 @@ impl App {
             info!("Starting to scan for files");
             directory = scanner.scan();
 
-            let mut filter = ContinuousFilter::new(directory,
+            let filter = Arc::new(ContinuousFilter::new(directory,
                                                    rec_new_directory_item.clone(),
                                                    Arc::new(Mutex::new(trans_filter_match.clone()))
-                                                  );
+                                                  ));
 
-            let finished_transmitter = filter.finished_transmitter.clone();
+            let finished_lock = filter.finished_lock.clone();
+            let finished_condvar = filter.finished_condvar.clone();
+            let local_filter = filter.clone();
             scope.spawn(move|| {
                 info!("Starting to filter scanned files");
-                filter.start();
+                local_filter.start();
             });
 
             self.set_cursor_to_filter_input();
 
-            let mut scanning_complete = false;
-            //let mut pending_filter_events = true; // make this variable
             while !self.done.load(Ordering::Relaxed) {
-                if scanning_complete {
-                    match rec_filter_match.try_recv() { // this needs to get the latest
+                if !(filter.is_processing() || !scanner.is_complete()) {
+                    match rec_filter_match.try_recv() {
                         Ok(filtered_directory) =>  {
-                            self.update_results(filtered_directory);
-                        },
-                        Err(error) => {
-                            match error {
-                                Empty => {}
-                                Disconnected => {}
+                            info!("Found filter match: {}", filtered_directory.len());
+                            self.update_results(filtered_directory); },
+                            Err(error) => {
+                                match error {
+                                    Empty => {}
+                                    Disconnected => {}
+                                }
                             }
-                        }
                     }
                     let (character, key) = self.curses.get_char_and_key();
                     self.handle_user_input(character, key);
                 } else {
-                    //if scanner.complete() {
-                        //scanning_complete = true;
-                    //} else {
-                        match self.curses.try_get_char_and_key() {
-                            Some((character, key)) => {
-                                info!("Found character {}, key {}", character, key);
-                                self.handle_user_input(character, key);
-                            },
-                            None => {
-                                match rec_filter_match.try_recv() {
-                                    Ok(filtered_directory) =>  {
-                                        info!("Found filter match: {}", filtered_directory.len());
-                                        self.update_results(filtered_directory); },
+                    match self.curses.try_get_char_and_key() {
+                        Some((character, key)) => {
+                            info!("Found character {}, key {}", character, key);
+                            self.handle_user_input(character, key);
+                        },
+                        None => {
+                            match rec_filter_match.try_recv() {
+                                Ok(filtered_directory) =>  {
+                                    info!("Found filter match: {}", filtered_directory.len());
+                                    self.update_results(filtered_directory); },
                                     Err(error) => {
                                         match error {
                                             Empty => {}
                                             Disconnected => {}
                                         }
                                     }
-                                }
                             }
                         }
-                    //}
+                    }
                 }
             }
 
             self.curses.close();
-            let _ = finished_transmitter.send(true);
+            let mut finished = finished_lock.lock().unwrap();
+            *finished = true;
+            finished_condvar.notify_all();
             FILTER_EVENT_BROKER.close();
         });
 

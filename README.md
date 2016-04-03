@@ -1,9 +1,9 @@
 # TODO
 
+- get multithreaded scanning to work properly again
+- gitignore not working
+
 - try using a crossbeam::sync::MsQueue instead of channels to send data when new item found in directory
 - try again to get the curses stuff into a thread??
-- get multithreaded scanning to work properly again
-- know how many pending filter events are in play and when 0 allow blocking of main thread when
-  waiting for keyboard input
 - can the continuous filter return a reference to the FilteredDirectory??
 - send filter matches as events and sort/aggregate them outside of the filter
