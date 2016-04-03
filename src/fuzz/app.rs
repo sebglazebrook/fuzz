@@ -32,8 +32,6 @@ impl App {
     pub fn start(&mut self) {
         info!("App started");
         let mut directory = Directory::new(PathBuf::new());
-        let(trans_new_directory_item, rec_new_directory_item) = channel();
-        let rec_new_directory_item =  Arc::new(Mutex::new(rec_new_directory_item));
         let(trans_filter_match, rec_filter_match) = channel();
         crossbeam::scope(|scope| {
 
@@ -46,7 +44,6 @@ impl App {
             let new_directory_item_event_broker = scanner.event_broker();
 
             let filter = Arc::new(ContinuousFilter::new(directory,
-                                                   rec_new_directory_item.clone(),
                                                    Arc::new(Mutex::new(trans_filter_match.clone())),
                                                    new_directory_item_event_broker.clone()
                                                   ));
@@ -168,7 +165,6 @@ impl App {
                                 self.update_ui();
                             },
                             None => {}
-
                         }
                     },
                     27 => { // ESCAPE
