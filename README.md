@@ -13,3 +13,4 @@
 - Sometimes if you start filtering a large directory set straight away it might not find your file
 - Sometimes when loading a large directory set for the first time it shows things like 11657/13878 and never get's
   till 100% matches until you filter and then remove the filter
+- if new directory items are found and there is a filter string, matching new items are not added to the results view
