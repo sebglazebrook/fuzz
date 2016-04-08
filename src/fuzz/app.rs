@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::TryRecvError::*;
 use crossbeam;
 use clipboard::ClipboardContext;
-use directory_filter::{ContinuousFilter, FilteredDirectory, ScannerBuilder, Directory, File, FILTER_EVENT_BROKER};
+use directory_filter::{ContinuousFilter, FilteredDirectory, DirectoryScanner, ScannerBuilder, Directory, File, FILTER_EVENT_BROKER};
 
 use fuzz::Curses;
 
@@ -35,10 +35,7 @@ impl App {
         let(trans_filter_match, rec_filter_match) = channel();
         crossbeam::scope(|scope| {
 
-            let mut scanner_builder = ScannerBuilder::new();
-            scanner_builder = scanner_builder.start_from_path("./");
-            let mut scanner = scanner_builder.build();
-            drop(scanner_builder);
+            let mut scanner = self.build_scanner();
             info!("Starting to scan for files");
             directory = scanner.scan();
             let new_directory_item_event_broker = scanner.event_broker();
@@ -270,5 +267,11 @@ impl App {
             },
             None => {}
         }
+    }
+
+    fn build_scanner(&self) ->  DirectoryScanner {
+        let mut scanner_builder = ScannerBuilder::new();
+        scanner_builder = scanner_builder.start_from_path("./");
+        scanner_builder.build()
     }
 }
