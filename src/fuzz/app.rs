@@ -36,7 +36,6 @@ impl App {
         crossbeam::scope(|scope| {
 
             let mut scanner = self.build_scanner();
-            info!("Starting to scan for files");
             directory = scanner.scan();
             let new_directory_item_event_broker = scanner.event_broker();
 
@@ -59,27 +58,25 @@ impl App {
                 if !(filter.is_processing() || !scanner.is_complete()) {
                     match rec_filter_match.try_recv() {
                         Ok(filtered_directory) =>  {
-                            info!("Found filter match: {}", filtered_directory.len());
-                            self.update_results(filtered_directory); },
-                            Err(error) => {
-                                match error {
-                                    Empty => {}
-                                    Disconnected => {}
-                                }
+                            self.update_results(filtered_directory);
+                        },
+                        Err(error) => {
+                            match error {
+                                Empty => {}
+                                Disconnected => {}
                             }
+                        }
                     }
                     let (character, key) = self.curses.get_char_and_key();
                     self.handle_user_input(character, key);
                 } else {
                     match self.curses.try_get_char_and_key() {
                         Some((character, key)) => {
-                            info!("Found character {}, key {}", character, key);
                             self.handle_user_input(character, key);
                         },
                         None => {
                             match rec_filter_match.try_recv() {
                                 Ok(filtered_directory) =>  {
-                                    info!("Found filter match: {}", filtered_directory.len());
                                     self.update_results(filtered_directory); },
                                     Err(error) => {
                                         match error {
@@ -107,6 +104,7 @@ impl App {
     //---------- private ----------//
 
     fn handle_user_input(&mut self, character: i32, key: String) {
+        info!("Found character {}, key {}", character, key);
         if self.is_special_key(&key) {
             self.handle_special_character(character, &key);
         } else {
@@ -115,6 +113,7 @@ impl App {
     }
 
     fn update_results(&mut self, results: FilteredDirectory) {
+        info!("Found filter match: {}", results.len());
         self.clear_results();
         for (index, result) in results.clone().into_iter().enumerate() {
             if index == self.max_result_rows() {
