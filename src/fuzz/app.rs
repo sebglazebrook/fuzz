@@ -6,6 +6,7 @@ use std::sync::mpsc::TryRecvError::*;
 use crossbeam;
 use clipboard::ClipboardContext;
 use directory_filter::{ContinuousFilter, FilteredDirectory, DirectoryScanner, ScannerBuilder, Directory, File, FILTER_EVENT_BROKER};
+use ncurses::*;
 
 use fuzz::Curses;
 
@@ -39,10 +40,7 @@ impl App {
             directory = scanner.scan();
             let new_directory_item_event_broker = scanner.event_broker();
 
-            let filter = Arc::new(ContinuousFilter::new(directory,
-                                                   Arc::new(Mutex::new(trans_filter_match.clone())),
-                                                   new_directory_item_event_broker.clone()
-                                                  ));
+            let filter = Arc::new(ContinuousFilter::new(directory, Arc::new(Mutex::new(trans_filter_match.clone())), new_directory_item_event_broker.clone()));
 
             let finished_lock = filter.finished_lock.clone();
             let finished_condvar = filter.finished_condvar.clone();
@@ -161,7 +159,8 @@ impl App {
                 self.done.store(true, Ordering::Relaxed)
             },
             "^J" => { self.move_selected_down(); },
-            "^K" => { self.move_selected_up(); }
+            "^K" => { self.move_selected_up(); },
+            "^M" => { self.done.store(true, Ordering::Relaxed); },
             _ => {
                 match character {
                     263 | 127 => { //KEY_BACKSPACE
@@ -177,7 +176,6 @@ impl App {
                         self.done.store(true, Ordering::Relaxed);
                     },
                     10 => { // ENTER
-                        self.copy_selected_to_clipboard();
                         self.done.store(true, Ordering::Relaxed);
                     },
                     258 => { // KEY_DOWN
@@ -187,10 +185,11 @@ impl App {
                         self.move_selected_up();
                     },
                     _ => { }
-                }
+
             }
         }
-    }
+        }
+}
 
     fn amend_filter_string(&mut self, key: &String) {
         self.filter_string = self.filter_string.clone() + key;

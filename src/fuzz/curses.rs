@@ -78,6 +78,7 @@ impl Curses {
     pub fn close(&self) {
         endwin();
     }
+
     //--------- private -----------//
 
     fn init() {
@@ -91,10 +92,10 @@ impl Curses {
         }
         let screen = newterm(Some("xterm-256color"), stderr, stdin); // TODO get term from env var
         set_term(screen);
-        raw();
         noecho();
         keypad(stdscr, true);
-
+        nonl();
+        raw();
         start_color();
         init_pair(COLOR_PAIR_DEFAULT, COLOR_WHITE, COLOR_BLACK);
         init_pair(COLOR_PAIR_SELECTED, COLOR_WHITE, COLOR_SELECTED_BACKGROUND);
