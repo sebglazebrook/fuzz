@@ -1,5 +1,6 @@
 use ncurses::*;
-
+use libc;
+use std::ffi::CString;
 
 /* Individual color handles. */
 static COLOR_SELECTED_BACKGROUND: i16 = 237;
@@ -80,7 +81,16 @@ impl Curses {
     //--------- private -----------//
 
     fn init() {
-        initscr();
+        let read_mode = CString::new("r").unwrap();
+        let write_mode = CString::new("w").unwrap();
+        let stderr;
+        let stdin;
+        unsafe {
+            stderr = libc::fdopen(libc::STDERR_FILENO, read_mode.as_ptr());
+            stdin = libc::fdopen(libc::STDIN_FILENO, write_mode.as_ptr());
+        }
+        let screen = newterm(Some("xterm-256color"), stderr, stdin);
+        set_term(screen);
         raw();
         noecho();
         keypad(stdscr, true);

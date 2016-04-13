@@ -10,6 +10,7 @@ crossbeam = "*"
 clipboard = "*"
 log = "*"
 env_logger = "*"
+libc = "*"
 
 
 [dependencies.directory_filter]
