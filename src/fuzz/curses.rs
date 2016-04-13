@@ -89,7 +89,7 @@ impl Curses {
             stderr = libc::fdopen(libc::STDERR_FILENO, read_mode.as_ptr());
             stdin = libc::fdopen(libc::STDIN_FILENO, write_mode.as_ptr());
         }
-        let screen = newterm(Some("xterm-256color"), stderr, stdin);
+        let screen = newterm(Some("xterm-256color"), stderr, stdin); // TODO get term from env var
         set_term(screen);
         raw();
         noecho();
