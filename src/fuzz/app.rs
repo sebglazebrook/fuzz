@@ -97,11 +97,21 @@ impl App {
 
             FILTER_EVENT_BROKER.close();
             new_directory_item_event_broker.close();
+            self.print_result();
         });
 
     }
 
     //---------- private ----------//
+
+    fn print_result(&self) {
+        match self.displayed_results.get(self.selected_result as usize) {
+            Some(result) => {
+                println!("{}", result);
+            },
+            None => {}
+        }
+    }
 
     fn handle_user_input(&mut self, character: i32, key: String) {
         info!("Found character {}, key {}", character, key);
