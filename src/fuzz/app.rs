@@ -104,7 +104,8 @@ impl App {
     //---------- private ----------//
 
     fn print_result(&self) {
-        match self.displayed_results.get(self.selected_result as usize) {
+        let selected_result = self.max_result_rows() - self.selected_result as usize;
+        match self.displayed_results.get(selected_result) {
             Some(result) => {
                 println!("{}", result);
             },
