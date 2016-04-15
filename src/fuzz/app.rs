@@ -31,6 +31,7 @@ impl App {
     }
 
     pub fn start(&mut self) {
+        self.selected_result = self.max_result_rows() as i8;
         info!("App started");
         let mut directory = Directory::new(PathBuf::new());
         let(trans_filter_match, rec_filter_match) = channel();
@@ -127,8 +128,10 @@ impl App {
             if index == self.max_result_rows() {
                 break;
             }
-            self.update_result(&result, index);
+            let row_to_update = self.max_result_rows() - index - 1;
+            self.update_result(&result, row_to_update);
         }
+        self.select_row();
         self.update_stats(results.total_len(), results.len());
         self.set_cursor_to_filter_input();
     }
@@ -244,9 +247,11 @@ impl App {
 
     fn unselect_current(&self) {
         if self.selected_result >= 0 {
-            match self.displayed_results.get(self.selected_result as usize) {
+            let selected_result = self.max_result_rows() - self.selected_result as usize;
+            match self.displayed_results.get(selected_result) {
                 Some(result) => {
-                    self.curses.move_cursor(self.selected_result as i32, 0);
+                    let row = self.selected_result as i32 - 1;
+                    self.curses.move_cursor(row, 0);
                     self.curses.normal_background();
                     self.curses.println(&result);
                 },
@@ -255,14 +260,27 @@ impl App {
         }
     }
 
-    fn select_row(&self) {
-        match self.displayed_results.get(self.selected_result as usize) {
+    fn select_row(&mut self) {
+        let selected_result = self.max_result_rows() - self.selected_result as usize;
+        match self.displayed_results.get(selected_result) {
             Some(result) => {
-                self.curses.move_cursor(self.selected_result as i32, 0);
+                let row = self.selected_result as i32 - 1;
+                self.curses.move_cursor(row, 0);
                 self.curses.selected_background();
                 self.curses.println(&result);
             },
-            None => {}
+            None => {
+                self.selected_result = self.max_result_rows() as i8;
+                match self.displayed_results.get(self.selected_result as usize) {
+                    Some(result) => {
+                        let row = self.selected_result as i32 - 1;
+                        self.curses.move_cursor(row, 0);
+                        self.curses.selected_background();
+                        self.curses.println(&result);
+                },
+                None => {}
+                    }
+            }
         }
     }
 
