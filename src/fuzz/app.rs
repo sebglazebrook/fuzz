@@ -50,13 +50,13 @@ impl App {
                 local_filter.start();
             });
 
-            self.set_cursor_to_filter_input();
+            self.view.set_cursor_to_filter_input(&self.filter_string);
 
             while !self.done.load(Ordering::Relaxed) {
                 if !(filter.is_processing() || !scanner.is_complete()) {
                     match rec_filter_match.try_recv() {
                         Ok(filtered_directory) =>  {
-                            self.view.update_results(filtered_directory);
+                            self.view.update_results(filtered_directory, &self.filter_string);
                         },
                         Err(error) => {
                             match error {
@@ -75,7 +75,7 @@ impl App {
                         None => {
                             match rec_filter_match.try_recv() {
                                 Ok(filtered_directory) =>  {
-                                    self.view.update_results(filtered_directory);
+                                    self.view.update_results(filtered_directory, &self.filter_string);
                                 },
                                 Err(error) => {
                                     match error {
@@ -141,7 +141,7 @@ impl App {
                         match self.filter_string.pop() {
                             Some(_) => {
                                 FILTER_EVENT_BROKER.send(self.filter_string.clone());
-                                self.update_ui();
+                                self.view.update_filter_string(&self.filter_string);
                             },
                             None => {}
                         }
@@ -167,26 +167,7 @@ impl App {
     fn amend_filter_string(&mut self, key: &String) {
         self.filter_string = self.filter_string.clone() + key;
         FILTER_EVENT_BROKER.send(self.filter_string.clone());
-        self.update_ui();
-    }
-
-    // TODO move this to View
-    fn update_ui(&self) {
-        self.set_cursor_to_filter_input_beginning();
-        let filter_string = self.filter_string.clone();
-        self.curses.bold();
-        self.curses.println(&filter_string);
-    }
-
-    // TODO move this to View
-    fn set_cursor_to_filter_input(&self) {
-        let column = self.filter_string.chars().count();
-        self.curses.move_cursor(self.curses.height -1, column as i32);
-    }
-
-    // TODO move this to View
-    fn set_cursor_to_filter_input_beginning(&self) {
-        self.curses.move_cursor(self.curses.height -1, 0);
+        self.view.update_filter_string(&self.filter_string);
     }
 
     fn copy_selected_to_clipboard(&self) {

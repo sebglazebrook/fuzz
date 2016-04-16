@@ -20,7 +20,7 @@ impl View {
         }
     }
 
-    pub fn update_results(&mut self, results: FilteredDirectory) {
+    pub fn update_results(&mut self, results: FilteredDirectory, filter_string: &String) {
         info!("Found filter match: {}", results.len());
         self.clear_results();
         for (index, result) in results.clone().into_iter().enumerate() {
@@ -32,7 +32,7 @@ impl View {
         }
         self.select_row();
         self.update_stats(results.total_len(), results.len());
-        self.set_cursor_to_filter_input();
+        self.set_cursor_to_filter_input(filter_string);
     }
 
     pub fn select_first_result(&mut self) {
@@ -61,6 +61,24 @@ impl View {
             Some(result) => { Some(result.clone()) }
             None => { None }
         }
+    }
+
+    pub fn update_filter_string(&self, filter_string: &String) {
+        self.set_cursor_to_filter_input_beginning();
+        self.curses.bold();
+        self.curses.println(filter_string);
+    }
+
+    pub fn set_cursor_to_filter_input(&self, filter_string: &String) {
+        let column = filter_string.chars().count();
+        self.curses.move_cursor(self.curses.height -1, column as i32);
+    }
+
+
+    //------------ private --------------//
+
+    fn set_cursor_to_filter_input_beginning(&self) {
+        self.curses.move_cursor(self.curses.height -1, 0);
     }
 
     fn unselect_current(&self) {
@@ -129,8 +147,4 @@ impl View {
         self.curses.println(&stats);
     }
 
-    fn set_cursor_to_filter_input(&self) {
-        let column = self.filter_string.chars().count();
-        self.curses.move_cursor(self.curses.height -1, column as i32);
-    }
 }
