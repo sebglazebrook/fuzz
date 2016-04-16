@@ -6,7 +6,6 @@ pub struct View {
     selected_result: i8,
     displayed_results: Vec<String>,
     curses: Curses,
-    filter_string: String,
 }
 
 impl View {
@@ -16,7 +15,6 @@ impl View {
             selected_result: -1,
             displayed_results: vec![],
             curses: curses,
-            filter_string: String::new(),
         }
     }
 

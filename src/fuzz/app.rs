@@ -96,14 +96,14 @@ impl App {
 
             FILTER_EVENT_BROKER.close();
             new_directory_item_event_broker.close();
-            self.print_result();
+            self.print_selected_result();
         });
 
     }
 
     //---------- private ----------//
 
-    fn print_result(&self) {
+    fn print_selected_result(&self) {
         match self.view.get_selected_result() {
             Some(result) => {
                 println!("{}", result);
@@ -112,6 +112,7 @@ impl App {
         }
     }
 
+    // TODO refactor this to be an object
     fn handle_user_input(&mut self, character: i32, key: String) {
         info!("Found character {}, key {}", character, key);
         if self.is_special_key(&key) {
