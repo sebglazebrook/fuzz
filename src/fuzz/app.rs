@@ -5,33 +5,32 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::TryRecvError::*;
 use crossbeam;
 use clipboard::ClipboardContext;
-use directory_filter::{ContinuousFilter, FilteredDirectory, DirectoryScanner, ScannerBuilder, Directory, File, FILTER_EVENT_BROKER};
+use directory_filter::{ContinuousFilter, FilteredDirectory, DirectoryScanner, ScannerBuilder, Directory, FILTER_EVENT_BROKER};
 use ncurses::*;
 
-use fuzz::Curses;
+use fuzz::{View, Curses};
 
 pub struct App {
     done: AtomicBool,
     filter_string: String,
     curses: Curses,
-    selected_result: i8,
-    displayed_results: Vec<String>
+    view: View,
 }
 
 impl App {
 
     pub fn new() -> Self {
+        let curses = Curses::new();
         App {
             done: AtomicBool::new(false),
             filter_string: String::new(),
-            curses: Curses::new(),
-            selected_result: -1,
-            displayed_results: vec![],
+            view: View::new(curses.clone()),
+            curses: curses,
         }
     }
 
     pub fn start(&mut self) {
-        self.selected_result = self.max_result_rows() as i8;
+        self.view.select_first_result();
         info!("App started");
         let mut directory = Directory::new(PathBuf::new());
         let(trans_filter_match, rec_filter_match) = channel();
@@ -104,8 +103,7 @@ impl App {
     //---------- private ----------//
 
     fn print_result(&self) {
-        let selected_result = self.max_result_rows() - self.selected_result as usize;
-        match self.displayed_results.get(selected_result) {
+        match self.view.get_selected_result() {
             Some(result) => {
                 println!("{}", result);
             },
@@ -123,32 +121,7 @@ impl App {
     }
 
     fn update_results(&mut self, results: FilteredDirectory) {
-        info!("Found filter match: {}", results.len());
-        self.clear_results();
-        for (index, result) in results.clone().into_iter().enumerate() {
-            if index == self.max_result_rows() {
-                break;
-            }
-            let row_to_update = self.max_result_rows() - index - 1;
-            self.update_result(&result, row_to_update);
-        }
-        self.select_row();
-        self.update_stats(results.total_len(), results.len());
-        self.set_cursor_to_filter_input();
-    }
-
-    fn update_result(&mut self, result: &File, row_number: usize) {
-        self.displayed_results.push(result.as_string());
-        self.curses.move_cursor(row_number as i32, 0);
-        self.curses.normal();
-        self.curses.println(&result.as_string());
-    }
-
-    fn clear_results(&mut self) {
-        self.displayed_results.clear();
-        for row in 0..self.max_result_rows() {
-            self.curses.clear_row(row as i32);
-        }
+        self.view.update_results(results);
     }
 
     fn is_special_key(&self, key: &String) -> bool {
@@ -189,11 +162,10 @@ impl App {
                         self.move_selected_up();
                     },
                     _ => { }
-
+                }
             }
         }
-        }
-}
+    }
 
     fn amend_filter_string(&mut self, key: &String) {
         self.filter_string = self.filter_string.clone() + key;
@@ -208,15 +180,6 @@ impl App {
         self.curses.println(&filter_string);
     }
 
-    fn update_stats(&self, total: usize, matching: usize) {
-        let row = self.curses.height - 2;
-        self.curses.move_cursor(row, 0);
-        self.curses.clear_row(row as i32);
-        let mut stats = String::new();
-        stats = stats + &matching.to_string() + "/" + &total.to_string();
-        self.curses.println(&stats);
-    }
-
     fn set_cursor_to_filter_input(&self) {
         let column = self.filter_string.chars().count();
         self.curses.move_cursor(self.curses.height -1, column as i32);
@@ -226,68 +189,16 @@ impl App {
         self.curses.move_cursor(self.curses.height -1, 0);
     }
 
-    fn max_result_rows(&self) -> usize  {
-        (self.curses.height - 2) as usize
-    }
-
     fn move_selected_down(&mut self) {
-        if self.selected_result < self.max_result_rows() as i8 {
-            self.unselect_current();
-            self.selected_result += 1;
-            self.select_row();
-        }
+        self.view.move_selected_down();
     }
 
     fn move_selected_up(&mut self) {
-        if self.selected_result > -1 {
-            self.unselect_current();
-            self.selected_result -= 1;
-            self.select_row();
-        }
+        self.view.move_selected_up();
     }
-
-    fn unselect_current(&self) {
-        if self.selected_result >= 0 {
-            let selected_result = self.max_result_rows() - self.selected_result as usize;
-            match self.displayed_results.get(selected_result) {
-                Some(result) => {
-                    let row = self.selected_result as i32 - 1;
-                    self.curses.move_cursor(row, 0);
-                    self.curses.normal_background();
-                    self.curses.println(&result);
-                },
-                None => {}
-            }
-        }
-    }
-
-    fn select_row(&mut self) {
-        let selected_result = self.max_result_rows() - self.selected_result as usize;
-        match self.displayed_results.get(selected_result) {
-            Some(result) => {
-                let row = self.selected_result as i32 - 1;
-                self.curses.move_cursor(row, 0);
-                self.curses.selected_background();
-                self.curses.println(&result);
-            },
-            None => {
-                self.selected_result = self.max_result_rows() as i8;
-                match self.displayed_results.get(self.selected_result as usize) {
-                    Some(result) => {
-                        let row = self.selected_result as i32 - 1;
-                        self.curses.move_cursor(row, 0);
-                        self.curses.selected_background();
-                        self.curses.println(&result);
-                },
-                None => {}
-                    }
-            }
-        }
-    }
-
 
     fn copy_selected_to_clipboard(&self) {
-        match self.displayed_results.get(self.selected_result as usize) {
+        match self.view.get_selected_result() {
             Some(result) => {
                 let mut ctx = ClipboardContext::new().unwrap();
                 let _ = ctx.set_contents(result.clone());

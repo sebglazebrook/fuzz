@@ -9,6 +9,7 @@ static COLOR_SELECTED_BACKGROUND: i16 = 237;
 static COLOR_PAIR_DEFAULT: i16 = 1;
 static COLOR_PAIR_SELECTED: i16 = 2;
 
+#[derive(Clone)]
 pub struct Curses {
     pub width: i32,
     pub height: i32,
