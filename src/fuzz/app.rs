@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::TryRecvError::*;
 use crossbeam;
 use clipboard::ClipboardContext;
-use directory_filter::{ContinuousFilter, FilteredDirectory, DirectoryScanner, ScannerBuilder, Directory, FILTER_EVENT_BROKER};
+use directory_filter::{ContinuousFilter, DirectoryScanner, ScannerBuilder, Directory, FILTER_EVENT_BROKER};
 use ncurses::*;
 
 use fuzz::{View, Curses};
@@ -56,7 +56,7 @@ impl App {
                 if !(filter.is_processing() || !scanner.is_complete()) {
                     match rec_filter_match.try_recv() {
                         Ok(filtered_directory) =>  {
-                            self.update_results(filtered_directory);
+                            self.view.update_results(filtered_directory);
                         },
                         Err(error) => {
                             match error {
@@ -75,7 +75,7 @@ impl App {
                         None => {
                             match rec_filter_match.try_recv() {
                                 Ok(filtered_directory) =>  {
-                                    self.update_results(filtered_directory); },
+                                    self.view.update_results(filtered_directory); },
                                     Err(error) => {
                                         match error {
                                             Empty => {}
@@ -120,10 +120,6 @@ impl App {
         }
     }
 
-    fn update_results(&mut self, results: FilteredDirectory) {
-        self.view.update_results(results);
-    }
-
     fn is_special_key(&self, key: &String) -> bool {
         key.chars().count() != 1
     }
@@ -135,8 +131,8 @@ impl App {
                 self.copy_selected_to_clipboard();
                 self.done.store(true, Ordering::Relaxed)
             },
-            "^J" => { self.move_selected_down(); },
-            "^K" => { self.move_selected_up(); },
+            "^J" => { self.view.move_selected_down(); },
+            "^K" => { self.view.move_selected_up(); },
             "^M" => { self.done.store(true, Ordering::Relaxed); },
             _ => {
                 match character {
@@ -156,10 +152,10 @@ impl App {
                         self.done.store(true, Ordering::Relaxed);
                     },
                     258 => { // KEY_DOWN
-                        self.move_selected_down();
+                        self.view.move_selected_down();
                     },
                     259 => { // KEY_UP
-                        self.move_selected_up();
+                        self.view.move_selected_up();
                     },
                     _ => { }
                 }
@@ -173,6 +169,7 @@ impl App {
         self.update_ui();
     }
 
+    // TODO move this to View
     fn update_ui(&self) {
         self.set_cursor_to_filter_input_beginning();
         let filter_string = self.filter_string.clone();
@@ -180,21 +177,15 @@ impl App {
         self.curses.println(&filter_string);
     }
 
+    // TODO move this to View
     fn set_cursor_to_filter_input(&self) {
         let column = self.filter_string.chars().count();
         self.curses.move_cursor(self.curses.height -1, column as i32);
     }
 
+    // TODO move this to View
     fn set_cursor_to_filter_input_beginning(&self) {
         self.curses.move_cursor(self.curses.height -1, 0);
-    }
-
-    fn move_selected_down(&mut self) {
-        self.view.move_selected_down();
-    }
-
-    fn move_selected_up(&mut self) {
-        self.view.move_selected_up();
     }
 
     fn copy_selected_to_clipboard(&self) {
