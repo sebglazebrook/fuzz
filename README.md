@@ -6,6 +6,9 @@
 - send filter matches as events and sort/aggregate them outside of the filter
 - store filtered results as dir tree to help speed up further filtering
 - display a loading/processing spinner
+- add colours to the output
+- add benchmarking to see where there is room for speed improvements
+
 
 
 # BUGS
