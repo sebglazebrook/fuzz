@@ -9,8 +9,6 @@
 - add colours to the output
 - add benchmarking to see where there is room for speed improvements
 
-
-
 # BUGS
 
 - Sometimes if you start filtering a large directory set straight away it might not find your file

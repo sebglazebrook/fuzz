@@ -20,13 +20,15 @@ impl View {
 
     pub fn update_results(&mut self, results: FilteredDirectory, filter_string: &String) {
         info!("Found filter match: {}", results.len());
-        self.clear_results();
-        for (index, result) in results.clone().into_iter().enumerate() {
-            if index == self.max_result_rows() {
-                break;
+        if self.visible_results_need_updating(&results) {
+            self.clear_results();
+            for (index, result) in results.clone().into_iter().enumerate() {
+                if index == self.max_result_rows() {
+                    break;
+                }
+                let row_to_update = self.max_result_rows() - index - 1;
+                self.update_result(&result, row_to_update);
             }
-            let row_to_update = self.max_result_rows() - index - 1;
-            self.update_result(&result, row_to_update);
         }
         self.select_row();
         self.update_stats(results.total_len(), results.len());
@@ -74,6 +76,11 @@ impl View {
 
 
     //------------ private --------------//
+
+    fn visible_results_need_updating(&self, results: &FilteredDirectory) -> bool {
+        let new_visible_results: Vec<String> = results.clone().into_iter().take(self.max_result_rows()).map(|file| file.as_string()).collect();
+        new_visible_results != self.displayed_results
+    }
 
     fn set_cursor_to_filter_input_beginning(&self) {
         self.curses.move_cursor(self.curses.height -1, 0);
