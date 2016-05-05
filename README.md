@@ -8,6 +8,7 @@
 - display a loading/processing spinner
 - add colours to the output
 - add benchmarking to see where there is room for speed improvements
+- when refiltering, need to make sure the selected result doesn't change value
 
 # BUGS
 
